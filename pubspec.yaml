@@ -1,11 +1,11 @@
 name: looking_for_group
 description: A new Flutter project.
-publish_to: "none"
+publish_to: "none" # Prevents accidental publishing to pub.dev
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ">=3.8.1 <4.0.0"
 
 dependencies:
   flutter:
@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^0.13.6
   shared_preferences: ^2.2.2
+  logger: ^2.0.2
 
 dev_dependencies:
   flutter_test:
