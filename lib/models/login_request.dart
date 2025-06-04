@@ -1,9 +1,11 @@
-// lib/models/login_request.dart
 class LoginRequest {
-  final String email;
+  final String usernameOrEmail;
   final String password;
 
-  LoginRequest({required this.email, required this.password});
+  LoginRequest({required this.usernameOrEmail, required this.password});
 
-  Map<String, dynamic> toJson() => {'email': email, 'password': password};
+  Map<String, dynamic> toJson() => {
+    'usernameOrEmail': usernameOrEmail,
+    'password': password,
+  };
 }
