@@ -1,27 +1,31 @@
 import 'package:flutter/material.dart';
-import 'pages/welcome_page.dart';
-import 'pages/login_page.dart';
-import 'pages/register_page.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/check_auth_screen.dart';
+import '/screens/home_screen.dart'; // schermata dopo login (puoi cambiarla più avanti)
 
 void main() {
-  runApp(const LfgApp());
+  runApp(LFGApp());
 }
 
-class LfgApp extends StatelessWidget {
-  const LfgApp({super.key});
-
+class LFGApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Looking For Group',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.indigo),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
+      ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const WelcomePage(),
-        '/login': (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(),
+        '/': (context) => CheckAuthScreen(),
+        '/login': (context) => LoginScreen(),
+        '/register': (context) => RegisterScreen(),
+        '/home': (context) => HomeScreen(),
+        // aggiungerai altre schermate qui (es. user_profile_screen)
       },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
