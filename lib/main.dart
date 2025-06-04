@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:looking_for_group/screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/check_auth_screen.dart';
-import '/screens/home_screen.dart'; // schermata dopo login (puoi cambiarla più avanti)
+import '/screens/home_screen.dart';
 
 void main() {
-  runApp(LFGApp());
+  runApp(const LFGApp());
 }
 
 class LFGApp extends StatelessWidget {
+  const LFGApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,10 +22,11 @@ class LFGApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => CheckAuthScreen(),
-        '/login': (context) => LoginScreen(),
-        '/register': (context) => RegisterScreen(),
-        '/home': (context) => HomeScreen(),
+        '/': (context) => const CheckAuthScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeScreen(),
         // aggiungerai altre schermate qui (es. user_profile_screen)
       },
       debugShowCheckedModeBanner: false,
