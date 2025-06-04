@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,7 +31,15 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     if (!mounted) return;
     if (success) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Dopo login, controlla se l'utente ha già la città
+      final userService = UserService();
+      final user = await userService.getCurrentUser();
+      if (!mounted) return;
+      if (user != null && (user['city'] == null || user['city'].isEmpty)) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     } else {
       setState(() {
         _error = "Credenziali non valide";

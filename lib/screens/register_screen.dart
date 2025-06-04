@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/user_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -32,7 +33,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     if (!mounted) return;
     if (success) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Dopo registrazione, controlla se l'utente ha già la città
+      final userService = UserService();
+      final user = await userService.getCurrentUser();
+      if (!mounted) return;
+      if (user != null && (user['city'] == null || user['city'].isEmpty)) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     } else {
       setState(() {
         _error = "Registrazione fallita, riprova.";
