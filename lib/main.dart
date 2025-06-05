@@ -5,6 +5,7 @@ import 'screens/register_screen.dart';
 import 'screens/check_auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/complete_profile_screen.dart';
+import 'screens/user_profile_screen.dart';
 
 void main() {
   runApp(const LFGApp());
@@ -29,6 +30,7 @@ class LFGApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
         '/complete-profile': (context) => const CompleteProfileScreen(),
+        '/profile': (context) => const UserProfileScreen(),
       },
       debugShowCheckedModeBanner: false,
     );

@@ -9,7 +9,7 @@ class UserService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
     final response = await http.get(
-      Uri.parse('$baseUrl/me'),
+      Uri.parse('$baseUrl/users/me'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
@@ -19,16 +19,26 @@ class UserService {
     }
   }
 
-  Future<bool> updateCity(String city) async {
+  Future<bool> updateProfile({
+    String? city,
+    String? bio,
+    String? username,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
+    final body = <String, dynamic>{};
+    if (city != null) body['city'] = city;
+    if (bio != null) body['bio'] = bio;
+    if (username != null) body['username'] = username;
+    if (body.isEmpty) return false;
+
     final response = await http.patch(
-      Uri.parse('$baseUrl/me'),
+      Uri.parse('$baseUrl/users/me'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'city': city}),
+      body: jsonEncode(body),
     );
     return response.statusCode == 200;
   }

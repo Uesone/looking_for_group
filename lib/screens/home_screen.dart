@@ -31,12 +31,31 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Home')),
+        appBar: AppBar(
+          title: Text('Home'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.person),
+              onPressed: () => Navigator.pushNamed(context, '/profile'),
+            ),
+          ],
+        ),
         body: Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text('Home')),
+      appBar: AppBar(
+        title: Text('Home'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.person),
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/profile');
+              _fetchUser(); // Aggiorna dopo eventuali cambi profilo!
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           if (_city == null || _city!.isEmpty)

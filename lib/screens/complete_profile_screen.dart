@@ -20,7 +20,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       _error = null;
     });
     final userService = UserService();
-    final success = await userService.updateCity(_cityController.text.trim());
+    final success = await userService.updateProfile(
+      city: _cityController.text.trim(),
+    );
     setState(() {
       _loading = false;
     });
