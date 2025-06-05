@@ -15,13 +15,17 @@ class AuthService {
         'password': password,
       }),
     );
+    print('Risposta login: ${response.statusCode}');
+    print('Body login: ${response.body}');
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final token = data['token'];
+      print('TOKEN ricevuto: $token');
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('jwt_token', token);
       return true;
     } else {
+      print('Login fallito!');
       return false;
     }
   }

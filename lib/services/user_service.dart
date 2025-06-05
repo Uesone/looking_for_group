@@ -8,6 +8,10 @@ class UserService {
   Future<Map<String, dynamic>?> getCurrentUser() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
+    if (token == null || token.isEmpty) {
+      print('ERRORE: token JWT mancante!');
+      return null;
+    }
     final response = await http.get(
       Uri.parse('$baseUrl/users/me'),
       headers: {'Authorization': 'Bearer $token'},
@@ -15,6 +19,7 @@ class UserService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
+      print('Errore getCurrentUser: ${response.statusCode} - ${response.body}');
       return null;
     }
   }
@@ -26,11 +31,20 @@ class UserService {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
+    if (token == null || token.isEmpty) {
+      print('ERRORE: token JWT mancante!');
+      // Qui puoi anche fare logout automatico o mostrare un dialog
+      return false;
+    }
     final body = <String, dynamic>{};
     if (city != null) body['city'] = city;
     if (bio != null) body['bio'] = bio;
     if (username != null) body['username'] = username;
     if (body.isEmpty) return false;
+
+    // Log per debug
+    print('Token per update: $token');
+    print('Body per update: $body');
 
     final response = await http.patch(
       Uri.parse('$baseUrl/users/me'),
@@ -40,6 +54,12 @@ class UserService {
       },
       body: jsonEncode(body),
     );
-    return response.statusCode == 200;
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print('Errore updateProfile: ${response.statusCode} - ${response.body}');
+      return false;
+    }
   }
 }
