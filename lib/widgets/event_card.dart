@@ -50,7 +50,7 @@ class EventCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              // Data
+              // Data e Max partecipanti
               Row(
                 children: [
                   const Icon(Icons.event_outlined, size: 18),
@@ -69,7 +69,7 @@ class EventCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 15),
-              // Creatore Evento
+              // Creatore Evento e Livello
               Row(
                 children: [
                   const CircleAvatar(radius: 13, child: Icon(Icons.person)),
@@ -86,7 +86,6 @@ class EventCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.indigo.withAlpha((255 * 0.13).round()),
-
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Text(

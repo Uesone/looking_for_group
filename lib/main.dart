@@ -17,10 +17,8 @@ class LFGApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // Usa initialRoute e routes
       initialRoute: '/welcome',
       routes: appRoutes,
-      // Se vuoi una schermata di fallback per route non trovate:
       onUnknownRoute: (settings) =>
           MaterialPageRoute(builder: (context) => const PlaceholderScreen()),
     );

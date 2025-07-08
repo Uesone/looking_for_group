@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/event_feed.dart';
-import '../../services/event_service.dart';
+import '../../services/event_feed_service.dart';
 import '../../widgets/event_card.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -16,7 +16,13 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   void initState() {
     super.initState();
-    _futureEvents = EventService().fetchEventFeed();
+    _futureEvents = EventFeedService().fetchEventFeed();
+  }
+
+  void _refreshFeed() {
+    setState(() {
+      _futureEvents = EventFeedService().fetchEventFeed();
+    });
   }
 
   @override
@@ -61,6 +67,16 @@ class _FeedScreenState extends State<FeedScreen> {
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final created = await Navigator.pushNamed(context, '/event_create');
+          if (created == true) {
+            _refreshFeed();
+          }
+        },
+        tooltip: 'Crea evento',
+        child: const Icon(Icons.add),
       ),
     );
   }
