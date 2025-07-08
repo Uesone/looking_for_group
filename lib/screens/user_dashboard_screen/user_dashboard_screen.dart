@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <-- IMPORT NECESSARIO
 import '../../models/user_dashboard.dart';
 import '../../services/user_service.dart';
+import '../profile_screen/edit_profile_screen.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
@@ -16,6 +18,26 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   void initState() {
     super.initState();
     _futureDashboard = UserService().fetchDashboard();
+  }
+
+  /// Ricarica i dati freschi della dashboard (dopo modifica profilo)
+  Future<void> _refreshDashboard() async {
+    setState(() {
+      _futureDashboard = UserService().fetchDashboard();
+    });
+  }
+
+  /// Funzione di LOGOUT: cancella token, userId e riporta a login
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
+    await prefs.remove('user_id');
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Logout eseguito!')));
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   @override
@@ -39,7 +61,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Avatar + Nome utente
+              // --- Avatar + Nome utente + info ---
               Center(
                 child: Column(
                   children: [
@@ -63,7 +85,6 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       user.email,
                       style: TextStyle(color: Colors.grey[500], fontSize: 13),
                     ),
-                    // Se vuoi anche la bio:
                     if (user.bio != null && user.bio!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -74,10 +95,40 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         ),
                       ),
                     const SizedBox(height: 20),
+
+                    // --- PULSANTE MODIFICA PROFILO ---
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.edit),
+                      label: const Text("Modifica profilo"),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        minimumSize: const Size.fromHeight(42),
+                      ),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditProfileScreen(
+                              initialUsername: user.username,
+                              initialCity: user.city,
+                              initialBio: user.bio,
+                              initialProfileImage: user.profileImage,
+                            ),
+                          ),
+                        );
+                        // Dopo modifica, aggiorna la dashboard con dati freschi dal backend!
+                        if (result != null) {
+                          await _refreshDashboard();
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
-              // XP e livello
+              // --- XP e livello ---
               Card(
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 child: Padding(
@@ -104,7 +155,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   ),
                 ),
               ),
-              // Statistiche
+              // --- Statistiche ---
               Card(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -124,7 +175,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Azioni rapide
+              // --- Azioni rapide ---
               Text(
                 "Azioni rapide",
                 style: Theme.of(context).textTheme.titleMedium,
@@ -135,7 +186,6 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 label: "Profilo pubblico",
                 color: Colors.deepPurple,
                 onTap: () {
-                  // PASSA user.id come arguments e controlla che non sia null/empty
                   if (user.id.isNotEmpty) {
                     Navigator.pushNamed(
                       context,
@@ -179,13 +229,13 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 },
               ),
               const SizedBox(height: 8),
+
+              // --- LOGOUT ---
               _actionButton(
                 icon: Icons.logout,
                 label: "Logout",
                 color: Colors.red,
-                onTap: () {
-                  // Logica logout qui!
-                },
+                onTap: _logout,
               ),
             ],
           );
@@ -194,6 +244,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     );
   }
 
+  /// Tile per statistiche
   Widget _statTile(IconData icon, String label, int value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -211,6 +262,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     );
   }
 
+  /// Bottone azione rapida
   Widget _actionButton({
     required IconData icon,
     required String label,
