@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/welcome/welcome_screen.dart';
 
 void main() {
   runApp(const LFGApp());
@@ -16,7 +17,7 @@ class LFGApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const PlaceholderScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }
