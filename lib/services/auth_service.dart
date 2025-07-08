@@ -17,9 +17,14 @@ class AuthService {
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       final token = body['token'] ?? body['jwt'] ?? "";
-      if (token.isNotEmpty) {
+      final userId = body['userId'] ?? body['id'];
+      if (token.isNotEmpty && userId != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', token);
+        await prefs.setString(
+          'user_id',
+          userId.toString(),
+        ); // Salva UUID come stringa!
         return true;
       }
     }
@@ -36,9 +41,14 @@ class AuthService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       final body = jsonDecode(response.body);
       final token = body['token'] ?? body['jwt'] ?? "";
-      if (token.isNotEmpty) {
+      final userId = body['userId'] ?? body['id'];
+      if (token.isNotEmpty && userId != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', token);
+        await prefs.setString(
+          'user_id',
+          userId.toString(),
+        ); // Salva UUID come stringa!
         return true;
       }
     }

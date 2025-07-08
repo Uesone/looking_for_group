@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/welcome/welcome_screen.dart';
+import 'routes.dart'; // Importa la mappa delle route
 
 void main() {
   runApp(const LFGApp());
@@ -17,11 +17,17 @@ class LFGApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const WelcomeScreen(),
+      // Usa initialRoute e routes
+      initialRoute: '/welcome',
+      routes: appRoutes,
+      // Se vuoi una schermata di fallback per route non trovate:
+      onUnknownRoute: (settings) =>
+          MaterialPageRoute(builder: (context) => const PlaceholderScreen()),
     );
   }
 }
 
+/// Schermata placeholder generica (usata anche per route non trovate)
 class PlaceholderScreen extends StatelessWidget {
   const PlaceholderScreen({super.key});
 

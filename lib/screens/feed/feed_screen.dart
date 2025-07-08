@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/event_feed.dart';
 import '../../services/event_service.dart';
-import '../../widgets/event_card.dart'; // <-- aggiorna il nome qui!
+import '../../widgets/event_card.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -22,7 +22,25 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Feed Eventi')),
+      appBar: AppBar(
+        title: const Text('Feed Eventi'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle, size: 30),
+            onSelected: (value) {
+              if (value == 'dashboard') {
+                Navigator.pushNamed(context, '/user_dashboard');
+              } else if (value == 'profile') {
+                Navigator.pushNamed(context, '/profile');
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'dashboard', child: Text('Dashboard')),
+              const PopupMenuItem(value: 'profile', child: Text('Profilo')),
+            ],
+          ),
+        ],
+      ),
       body: FutureBuilder<List<EventFeed>>(
         future: _futureEvents,
         builder: (context, snapshot) {
