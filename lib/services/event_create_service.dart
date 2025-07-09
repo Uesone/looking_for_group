@@ -13,6 +13,9 @@ class EventCreateService {
     required DateTime date, // Solo data
     required int maxParticipants,
     required String joinMode, // 'AUTO' o 'MANUAL'
+    double? latitude,
+    double? longitude,
+    String? city,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
@@ -25,6 +28,9 @@ class EventCreateService {
       "date": date.toIso8601String().split('T').first, // solo yyyy-MM-dd
       "maxParticipants": maxParticipants,
       "joinMode": joinMode,
+      "latitude": latitude,
+      "longitude": longitude,
+      "city": city,
     });
 
     final url = Uri.parse('$_baseUrl/events');

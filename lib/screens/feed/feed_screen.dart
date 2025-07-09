@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../models/event_feed.dart';
 import '../../services/event_feed_service.dart';
+import '../../services/location_device.dart';
 import '../../widgets/event_card.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -12,6 +14,10 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   late Future<List<EventFeed>> _futureEvents;
+  double? _lat;
+  double? _lon;
+  double _radiusKm = 25;
+  bool _geoEnabled = false;
 
   @override
   void initState() {
@@ -21,8 +27,44 @@ class _FeedScreenState extends State<FeedScreen> {
 
   void _refreshFeed() {
     setState(() {
-      _futureEvents = EventFeedService().fetchEventFeed();
+      if (_geoEnabled && _lat != null && _lon != null) {
+        _futureEvents = EventFeedService().fetchEventFeed(
+          latitude: _lat,
+          longitude: _lon,
+          radiusKm: _radiusKm,
+        );
+      } else {
+        _futureEvents = EventFeedService().fetchEventFeed();
+      }
     });
+  }
+
+  Future<void> _toggleGeoFeed() async {
+    if (!_geoEnabled) {
+      try {
+        Position pos = await getCurrentPosition();
+        setState(() {
+          _lat = pos.latitude;
+          _lon = pos.longitude;
+          _geoEnabled = true;
+          _futureEvents = EventFeedService().fetchEventFeed(
+            latitude: _lat,
+            longitude: _lon,
+            radiusKm: _radiusKm,
+          );
+        });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Errore geolocalizzazione: $e")));
+      }
+    } else {
+      setState(() {
+        _geoEnabled = false;
+        _futureEvents = EventFeedService().fetchEventFeed();
+      });
+    }
   }
 
   @override
@@ -31,6 +73,13 @@ class _FeedScreenState extends State<FeedScreen> {
       appBar: AppBar(
         title: const Text('Feed Eventi'),
         actions: [
+          IconButton(
+            icon: Icon(_geoEnabled ? Icons.gps_fixed : Icons.gps_not_fixed),
+            tooltip: _geoEnabled
+                ? 'Mostra tutti gli eventi'
+                : 'Solo eventi vicino a me',
+            onPressed: _toggleGeoFeed,
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, size: 30),
             onSelected: (value) {

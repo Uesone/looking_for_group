@@ -6,13 +6,25 @@ import '../models/event_feed.dart';
 class EventFeedService {
   static const String _baseUrl = 'http://10.0.2.2:3001';
 
-  Future<List<EventFeed>> fetchEventFeed({int page = 0, int size = 10}) async {
+  /// Carica il feed eventi, con filtri geo se specificati.
+  Future<List<EventFeed>> fetchEventFeed({
+    int page = 0,
+    int size = 10,
+    double? latitude,
+    double? longitude,
+    double radiusKm = 25,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
-    final url = Uri.parse('$_baseUrl/events/feed?page=$page&size=$size');
+
+    // Costruisci url con filtri opzionali
+    String url = '$_baseUrl/events/feed?page=$page&size=$size';
+    if (latitude != null && longitude != null) {
+      url += '&lat=$latitude&lon=$longitude&radiusKm=$radiusKm';
+    }
 
     final response = await http.get(
-      url,
+      Uri.parse(url),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',

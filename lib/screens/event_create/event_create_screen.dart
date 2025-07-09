@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../services/event_create_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import '.././../services/event_create_service.dart';
+import '.././../services/location_device.dart';
 
 class EventCreateScreen extends StatefulWidget {
-  final VoidCallback? onEventCreated;
-
-  const EventCreateScreen({super.key, this.onEventCreated});
+  const EventCreateScreen({super.key});
 
   @override
   State<EventCreateScreen> createState() => _EventCreateScreenState();
@@ -12,151 +13,199 @@ class EventCreateScreen extends StatefulWidget {
 
 class _EventCreateScreenState extends State<EventCreateScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _title = '';
-  String _activityType = '';
-  String _location = '';
-  String? _notes;
-  DateTime? _date;
-  int _maxParticipants = 5;
+  final _titleController = TextEditingController();
+  final _activityController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _maxParticipantsController = TextEditingController(text: "5");
   String _joinMode = 'AUTO';
+  DateTime? _date;
+  double? _latitude;
+  double? _longitude;
 
   bool _loading = false;
-  String? _error;
-
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_date == null) {
-      setState(() => _error = 'Scegli una data');
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+  Future<String?> getCityFromLatLng(double lat, double lon) async {
     try {
-      await EventCreateService().createEvent(
-        title: _title,
-        activityType: _activityType,
-        location: _location,
-        notes: _notes,
-        date: _date!,
-        maxParticipants: _maxParticipants,
-        joinMode: _joinMode,
-      );
-      if (!mounted) return;
-      // ⚠️ Qui sotto: il warning "use_build_context_synchronously" è solo un avviso.
-      // Con il controllo "mounted", l'uso di context è sicuro e documentato come best practice.
-      // Se vuoi sopprimere il warning, puoi aggiungere la riga commentata sotto:
-      // ignore: use_build_context_synchronously
-      Navigator.pop(context, true);
-      // (Opzionale: se vuoi notificare il parent via callback)
-      widget.onEventCreated?.call();
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+      if (placemarks.isNotEmpty) {
+        return placemarks.first.locality ??
+            placemarks.first.subAdministrativeArea;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _loading = true);
+    try {
+      Position pos = await getCurrentPosition();
+      String? cityName = await getCityFromLatLng(pos.latitude, pos.longitude);
+
+      setState(() {
+        _latitude = pos.latitude;
+        _longitude = pos.longitude;
+        _locationController.text =
+            'Lat: ${pos.latitude.toStringAsFixed(5)}, Lon: ${pos.longitude.toStringAsFixed(5)}';
+        _cityController.text = cityName ?? "";
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore nel rilevamento posizione: $e')),
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _date == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compila tutti i campi obbligatori!')),
+      );
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await EventCreateService().createEvent(
+        title: _titleController.text.trim(),
+        activityType: _activityController.text.trim(),
+        location: _locationController.text.trim(),
+        notes: _notesController.text.trim(),
+        date: _date!,
+        maxParticipants:
+            int.tryParse(_maxParticipantsController.text.trim()) ?? 5,
+        joinMode: _joinMode,
+        latitude: _latitude,
+        longitude: _longitude,
+        city: _cityController.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errore creazione evento: $e')));
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Crea evento')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text("Crea nuovo evento")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(18),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Titolo'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Campo obbligatorio' : null,
-                onChanged: (v) => _title = v,
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Titolo evento'),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Richiesto' : null,
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Attività'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Campo obbligatorio' : null,
-                onChanged: (v) => _activityType = v,
+                controller: _activityController,
+                decoration: const InputDecoration(labelText: 'Tipo attività'),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Richiesto' : null,
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _locationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Luogo/Indirizzo',
+                      ),
+                      validator: (val) =>
+                          val == null || val.isEmpty ? 'Richiesto' : null,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.my_location),
+                    tooltip: "Usa posizione attuale",
+                    onPressed: _loading ? null : _useCurrentLocation,
+                  ),
+                ],
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Luogo'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Campo obbligatorio' : null,
-                onChanged: (v) => _location = v,
+                controller: _cityController,
+                decoration: const InputDecoration(labelText: 'Città'),
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Note'),
-                maxLines: 2,
-                onChanged: (v) => _notes = v.isEmpty ? null : v,
-              ),
-              ListTile(
-                title: Text(
-                  _date == null
-                      ? 'Scegli una data'
-                      : '${_date!.day.toString().padLeft(2, '0')}/'
-                            '${_date!.month.toString().padLeft(2, '0')}/'
-                            '${_date!.year}',
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Note (opzionale)',
                 ),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () async {
-                  DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: _date ?? DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      _date = picked;
-                    });
-                  }
-                },
               ),
               TextFormField(
+                controller: _maxParticipantsController,
                 decoration: const InputDecoration(
                   labelText: 'Max partecipanti',
                 ),
-                initialValue: '5',
                 keyboardType: TextInputType.number,
-                validator: (v) {
-                  final val = int.tryParse(v ?? '');
-                  if (val == null || val < 2) return 'Minimo 2 partecipanti';
-                  return null;
-                },
-                onChanged: (v) => _maxParticipants = int.tryParse(v) ?? 5,
               ),
               DropdownButtonFormField<String>(
                 value: _joinMode,
-                decoration: const InputDecoration(
-                  labelText: 'Modalità iscrizione',
-                ),
                 items: const [
                   DropdownMenuItem(
-                    value: 'AUTO',
-                    child: Text('Ingresso automatico'),
+                    value: "AUTO",
+                    child: Text("Join automatico"),
                   ),
                   DropdownMenuItem(
-                    value: 'MANUAL',
-                    child: Text('Richiesta approvazione'),
+                    value: "MANUAL",
+                    child: Text("Join con approvazione"),
                   ),
                 ],
-                onChanged: (v) => setState(() => _joinMode = v ?? 'AUTO'),
+                onChanged: (v) {
+                  setState(() => _joinMode = v ?? "AUTO");
+                },
+                decoration: const InputDecoration(
+                  labelText: "Modalità partecipazione",
+                ),
               ),
-              const SizedBox(height: 24),
-              if (_loading) const Center(child: CircularProgressIndicator()),
-              if (_error != null)
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ElevatedButton(
-                onPressed: _loading ? null : _submitForm,
-                child: const Text('Crea evento'),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _date == null
+                          ? "Seleziona data"
+                          : "Data: ${_date!.day}/${_date!.month}/${_date!.year}",
+                    ),
+                  ),
+                  TextButton(
+                    child: const Text("Scegli data"),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 1),
+                        ),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) setState(() => _date = picked);
+                    },
+                  ),
+                ],
               ),
+              const SizedBox(height: 22),
+              ElevatedButton.icon(
+                onPressed: _loading ? null : _submit,
+                icon: const Icon(Icons.check),
+                label: const Text("Crea evento"),
+              ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: CircularProgressIndicator(),
+                ),
             ],
           ),
         ),

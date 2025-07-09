@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/user_profile_update.dart';
 import '../../services/user_service.dart';
+import '../../services/location_device.dart'; // <-- Import SOLO la funzione!
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class EditProfileScreen extends StatefulWidget {
   final String initialUsername;
@@ -49,6 +52,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  /// PICK IMAGE dalla galleria
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -60,6 +64,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  /// SALVA PROFILO
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -100,9 +105,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "profileImage": imageUrl,
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profilo aggiornato!')));
+      // Mostra conferma SOLO se ancora montato
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profilo aggiornato!')));
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -111,6 +119,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Errore: ${e.toString()}')));
+    }
+  }
+
+  /// --- AUTOFILL CITTÀ tramite GEOLOCALIZZAZIONE ---
+  Future<void> _autofillCity() async {
+    try {
+      // 1. Ottieni posizione
+      final position = await getCurrentPosition(); // <-- Funzione diretta!
+      if (!mounted) return;
+      // 2. Reverse geocoding con Nominatim (OpenStreetMap)
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}',
+      );
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'LookingForGroupApp', // Importante per evitare blocchi!
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final city =
+            data['address']['city'] ??
+            data['address']['town'] ??
+            data['address']['village'] ??
+            data['address']['municipality'] ??
+            '';
+        if (city.isNotEmpty) {
+          setState(() {
+            _cityController.text = city;
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Città trovata: $city")));
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Città non trovata!")));
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Errore nella geolocalizzazione.")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Errore: $e")));
     }
   }
 
@@ -126,6 +186,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    /// IMMAGINE PROFILO
                     GestureDetector(
                       onTap: _pickImage,
                       child: CircleAvatar(
@@ -143,7 +204,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           alignment: Alignment.bottomRight,
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
@@ -157,6 +218,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
+
+                    /// USERNAME
                     TextFormField(
                       controller: _usernameController,
                       decoration: const InputDecoration(labelText: 'Username'),
@@ -166,15 +229,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           : null,
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _cityController,
-                      decoration: const InputDecoration(labelText: 'Città'),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty
-                          ? 'Città obbligatoria'
-                          : null,
+
+                    /// CITTÀ CON AUTOFILL GEO
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cityController,
+                            decoration: const InputDecoration(
+                              labelText: 'Città',
+                            ),
+                            validator: (value) =>
+                                value == null || value.trim().isEmpty
+                                ? 'Città obbligatoria'
+                                : null,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.my_location),
+                          tooltip: 'Rileva città',
+                          onPressed: _autofillCity,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
+
+                    /// BIO
                     TextFormField(
                       controller: _bioController,
                       decoration: const InputDecoration(labelText: 'Bio'),
@@ -182,6 +262,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       maxLines: 4,
                     ),
                     const SizedBox(height: 24),
+
+                    /// SALVA
                     ElevatedButton.icon(
                       onPressed: _saving ? null : _saveProfile,
                       icon: const Icon(Icons.save),
