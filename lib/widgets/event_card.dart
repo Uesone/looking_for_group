@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/event_feed.dart';
+import '../screens/event_detail/event_detail_screen.dart';
 
 /// Card evento per il feed: mostra SOLO città, mai location.
 /// Mostra la distanza SOLO se presente (geo attiva).
@@ -17,9 +18,10 @@ class EventCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: () {
-          // TODO: navigazione dettaglio evento
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prossimamente: dettaglio evento!')),
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => EventDetailScreen(event: event),
+            ),
           );
         },
         child: Padding(

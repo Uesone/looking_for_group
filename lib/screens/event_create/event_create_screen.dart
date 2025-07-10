@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '.././../services/event_create_service.dart';
-import '.././../services/location_device.dart';
+import '../../services/event_create_service.dart';
+import '../../services/location_device.dart';
+import '../../services/tag_service.dart';
+import '../../widgets/tag_selector.dart';
 
 class EventCreateScreen extends StatefulWidget {
   const EventCreateScreen({super.key});
@@ -24,9 +26,31 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   double? _latitude;
   double? _longitude;
 
+  // Tag state
+  List<String> _allTags = [];
+  Set<String> _selectedTags = {};
+  bool _tagsLoading = true;
+
   bool _loading = false;
-  String?
-  _missingFieldMessage; // <--- Mostra messaggio specifico sotto il pulsante
+  String? _missingFieldMessage; // Messaggio errore custom
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTags();
+  }
+
+  Future<void> _loadTags() async {
+    try {
+      final tags = await TagService.fetchAllowedTags();
+      setState(() {
+        _allTags = tags;
+        _tagsLoading = false;
+      });
+    } catch (_) {
+      setState(() => _tagsLoading = false);
+    }
+  }
 
   Future<String?> getCityFromLatLng(double lat, double lon) async {
     try {
@@ -128,6 +152,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
         latitude: _latitude,
         longitude: _longitude,
         city: _cityController.text.trim(),
+        tags: _selectedTags.toList(), // <-- Passa i tag selezionati!
       );
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -193,6 +218,25 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                   labelText: 'Note (opzionale)',
                 ),
               ),
+              // ================= TAG SELECTOR ===================
+              const SizedBox(height: 16),
+              _tagsLoading
+                  ? const CircularProgressIndicator()
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Tag evento (max 5, opzionale):"),
+                        TagSelector(
+                          allTags: _allTags,
+                          selectedTags: _selectedTags,
+                          maxTags: 5,
+                          onChanged: (tags) {
+                            setState(() => _selectedTags = tags);
+                          },
+                        ),
+                      ],
+                    ),
+              // ===================================================
               TextFormField(
                 controller: _maxParticipantsController,
                 decoration: const InputDecoration(
@@ -257,8 +301,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                   ),
                 ],
               ),
-              if (_missingFieldMessage !=
-                  null) // Messaggio errore sotto pulsante
+              if (_missingFieldMessage != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
