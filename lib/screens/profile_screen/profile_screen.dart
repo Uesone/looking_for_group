@@ -81,6 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Immagine profilo
                   CircleAvatar(
                     radius: 44,
                     backgroundImage:
@@ -92,11 +93,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     backgroundColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 18),
+                  // Username
                   Text(
                     user.username,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
+                  // Città
                   Text(user.city, style: TextStyle(color: Colors.grey[600])),
+                  // BIO (opzionale)
                   if (user.bio != null && user.bio!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -104,6 +108,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         user.bio!,
                         style: const TextStyle(fontStyle: FontStyle.italic),
                         textAlign: TextAlign.center,
+                      ),
+                    ),
+                  // GEO (lat/lon) - Mostra solo se disponibili!
+                  if (user.latitude != null && user.longitude != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        "Lat: ${user.latitude!.toStringAsFixed(5)}, Lon: ${user.longitude!.toStringAsFixed(5)}",
+                        style: TextStyle(
+                          color: Colors.blueGrey[700],
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -121,7 +138,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-
                   // Pulsante modifica profilo SOLO se è il proprio profilo
                   if (userId == myUserId)
                     ElevatedButton.icon(
@@ -142,6 +158,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               initialCity: user.city,
                               initialBio: user.bio,
                               initialProfileImage: user.profileImage,
+                              initialLatitude:
+                                  user.latitude, // <--- aggiungi questi!
+                              initialLongitude:
+                                  user.longitude, // <--- e questi!
                             ),
                           ),
                         );

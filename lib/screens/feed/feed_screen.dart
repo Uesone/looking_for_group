@@ -5,6 +5,9 @@ import '../../services/event_feed_service.dart';
 import '../../services/location_device.dart';
 import '../../widgets/event_card.dart';
 
+/// Schermata principale del feed eventi.
+/// Mostra eventi sempre, con filtro geo se attivo.
+/// Card evento mostra solo città (privacy).
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -25,6 +28,7 @@ class _FeedScreenState extends State<FeedScreen> {
     _futureEvents = EventFeedService().fetchEventFeed();
   }
 
+  /// Ricarica il feed secondo i filtri correnti (geo, raggio)
   void _refreshFeed() {
     setState(() {
       if (_geoEnabled && _lat != null && _lon != null) {
@@ -39,6 +43,7 @@ class _FeedScreenState extends State<FeedScreen> {
     });
   }
 
+  /// Attiva/disattiva la ricerca geo (con fetch posizione device)
   Future<void> _toggleGeoFeed() async {
     if (!_geoEnabled) {
       try {
@@ -65,6 +70,29 @@ class _FeedScreenState extends State<FeedScreen> {
         _futureEvents = EventFeedService().fetchEventFeed();
       });
     }
+  }
+
+  /// Slider per la selezione del raggio di ricerca eventi (solo se geo attivo)
+  Widget _buildRadiusSlider() {
+    if (!_geoEnabled) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Raggio ricerca eventi: ${_radiusKm.toStringAsFixed(0)} km"),
+          Slider(
+            value: _radiusKm,
+            min: 1,
+            max: 50,
+            divisions: 49,
+            label: "${_radiusKm.toStringAsFixed(0)} km",
+            onChanged: (v) => setState(() => _radiusKm = v),
+            onChangeEnd: (v) => _refreshFeed(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -96,26 +124,33 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<EventFeed>>(
-        future: _futureEvents,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Errore: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nessun evento trovato.'));
-          }
+      body: Column(
+        children: [
+          _buildRadiusSlider(),
+          Expanded(
+            child: FutureBuilder<List<EventFeed>>(
+              future: _futureEvents,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Errore: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Nessun evento trovato.'));
+                }
 
-          final events = snapshot.data!;
-          return ListView.builder(
-            itemCount: events.length,
-            itemBuilder: (context, index) {
-              final event = events[index];
-              return EventCard(event: event);
-            },
-          );
-        },
+                final events = snapshot.data!;
+                return ListView.builder(
+                  itemCount: events.length,
+                  itemBuilder: (context, index) {
+                    final event = events[index];
+                    return EventCard(event: event);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

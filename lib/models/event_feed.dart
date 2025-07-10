@@ -1,46 +1,45 @@
+/// Modello per eventi nel feed.
+/// Mostra SOLO la città nel feed.
+/// La distanza dall’utente è opzionale, presente solo se geo attiva.
 class EventFeed {
   final String id;
-  final String creatorID;
   final String title;
   final String activityType;
-  final String location;
   final String? city;
-  final String? notes;
   final DateTime date;
   final int maxParticipants;
-  final String joinMode;
+  final String creatorId;
   final String creatorUsername;
   final int creatorLevel;
+  final double? distanceFromUser;
 
   EventFeed({
     required this.id,
-    required this.creatorID,
     required this.title,
     required this.activityType,
-    required this.location,
     this.city,
-    this.notes,
     required this.date,
     required this.maxParticipants,
-    required this.joinMode,
+    required this.creatorId,
     required this.creatorUsername,
     required this.creatorLevel,
+    this.distanceFromUser,
   });
 
   factory EventFeed.fromJson(Map<String, dynamic> json) {
     return EventFeed(
       id: json['id'].toString(),
-      creatorID: (json['creatorID'] ?? json['creatorId'] ?? '').toString(),
       title: json['title'] ?? 'Titolo sconosciuto',
       activityType: json['activityType'] ?? 'Attività',
-      location: json['location'] ?? json['city'] ?? 'Luogo non definito',
       city: json['city'],
-      notes: json['notes'],
       date: DateTime.parse(json['date']),
       maxParticipants: json['maxParticipants'] ?? 1,
-      joinMode: json['joinMode'] ?? 'AUTO',
+      creatorId: (json['creatorId'] ?? '').toString(),
       creatorUsername: json['creatorUsername'] ?? 'Sconosciuto',
       creatorLevel: json['creatorLevel'] ?? 1,
+      distanceFromUser: json['distanceFromUser'] != null
+          ? (json['distanceFromUser'] as num).toDouble()
+          : null,
     );
   }
 }

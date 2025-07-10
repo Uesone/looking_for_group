@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'dart:io'; // <--- Serve per upload immagine!
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_dashboard.dart';
 import '../models/user_public_profile.dart';
-import '../models/user_profile_update.dart'; // <--- AGGIUNGI QUESTO IMPORT!
+import '../models/user_profile_update.dart';
 
+/// Service centralizzato per tutte le API utente (dashboard, profilo, upload foto, update posizione ecc.)
 class UserService {
-  static const String baseUrl = 'http://10.0.2.2:3001'; // Cambia se serve
+  static const String baseUrl = 'http://10.0.2.2:3001'; // Cambia per prod!
 
   // DASHBOARD PRIVATA: Usa sempre /me/dashboard! NON leggere userId dalle prefs!
   Future<UserDashboard> fetchDashboard() async {
@@ -45,7 +46,9 @@ class UserService {
     }
   }
 
-  // PATCH profilo utente (aggiorna solo i campi passati)
+  /// PATCH del profilo utente (aggiorna solo i campi passati).
+  /// Usa UserProfileUpdate come modello di update,
+  /// quindi puoi aggiornare city, bio, latitude, longitude, ecc.
   Future<bool> updateUserProfile(UserProfileUpdate update) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
@@ -70,7 +73,8 @@ class UserService {
     }
   }
 
-  // UPLOAD immagine profilo (POST multipart)
+  /// Upload immagine profilo (POST multipart).
+  /// Restituisce la URL pubblica dell’immagine caricata.
   Future<String> uploadProfileImage(File imageFile) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
@@ -98,4 +102,13 @@ class UserService {
       throw Exception('Errore upload immagine: ${response.reasonPhrase}');
     }
   }
+
+  /// PATCH della posizione utente (solo city/lat/lon, per update manuale da profilo)
+  /// Puoi chiamare solo updateUserProfile(UserProfileUpdate(...)) con i campi giusti.
+  /// Esempio:
+  ///   await updateUserProfile(UserProfileUpdate(
+  ///     city: "Roma",
+  ///     latitude: 41.9028,
+  ///     longitude: 12.4964,
+  ///   ));
 }

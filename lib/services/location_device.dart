@@ -14,29 +14,37 @@ import 'package:geolocator/geolocator.dart';
 /// }
 /// ```
 Future<Position> getCurrentPosition() async {
-  // Controlla se i servizi di localizzazione sono attivi
+  // 1. Controlla se i servizi di localizzazione sono attivi
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
-    throw Exception('I servizi di localizzazione sono disattivati.');
+    throw Exception(
+      'I servizi di localizzazione sono disattivati. Attivali nelle impostazioni.',
+    );
   }
 
-  // Controlla i permessi
+  // 2. Controlla i permessi
   LocationPermission permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied) {
-      throw Exception('Permesso posizione negato.');
+      throw Exception(
+        'Permesso posizione negato. Consenti la posizione per usare questa funzione.',
+      );
     }
   }
 
   if (permission == LocationPermission.deniedForever) {
     throw Exception(
-      'Permesso posizione negato in modo permanente. Modifica le impostazioni.',
+      'Permesso posizione negato in modo permanente. Vai nelle impostazioni per abilitare la localizzazione.',
     );
   }
 
-  // Restituisce la posizione
-  return await Geolocator.getCurrentPosition(
-    desiredAccuracy: LocationAccuracy.high,
-  );
+  // 3. Restituisce la posizione con alta precisione
+  try {
+    return await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+  } catch (e) {
+    throw Exception('Impossibile ottenere la posizione: $e');
+  }
 }

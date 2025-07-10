@@ -3,10 +3,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/event_feed.dart';
 
+/// Service per caricare il feed eventi dal backend.
+/// Mostra sempre eventi (con o senza geo), e passa la geo SOLO se attiva.
 class EventFeedService {
   static const String _baseUrl = 'http://10.0.2.2:3001';
 
-  /// Carica il feed eventi, con filtri geo se specificati.
   Future<List<EventFeed>> fetchEventFeed({
     int page = 0,
     int size = 10,
@@ -17,14 +18,23 @@ class EventFeedService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
-    // Costruisci url con filtri opzionali
-    String url = '$_baseUrl/events/feed?page=$page&size=$size';
+    // Costruzione query dinamica
+    final Map<String, String> queryParams = {
+      'page': page.toString(),
+      'size': size.toString(),
+      'radiusKm': radiusKm.toString(),
+    };
     if (latitude != null && longitude != null) {
-      url += '&lat=$latitude&lon=$longitude&radiusKm=$radiusKm';
+      queryParams['lat'] = latitude.toString();
+      queryParams['lon'] = longitude.toString();
     }
 
+    final uri = Uri.parse(
+      '$_baseUrl/events/feed',
+    ).replace(queryParameters: queryParams);
+
     final response = await http.get(
-      Uri.parse(url),
+      uri,
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',

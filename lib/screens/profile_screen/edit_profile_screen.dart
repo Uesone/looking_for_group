@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/user_profile_update.dart';
 import '../../services/user_service.dart';
-import '../../services/location_device.dart'; // <-- Import SOLO la funzione!
+import '../../services/location_device.dart'; // <-- Solo funzione getCurrentPosition!
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -12,6 +12,8 @@ class EditProfileScreen extends StatefulWidget {
   final String initialCity;
   final String? initialBio;
   final String? initialProfileImage;
+  final double? initialLatitude; // <--- NEW!
+  final double? initialLongitude; // <--- NEW!
 
   const EditProfileScreen({
     super.key,
@@ -19,6 +21,8 @@ class EditProfileScreen extends StatefulWidget {
     required this.initialCity,
     this.initialBio,
     this.initialProfileImage,
+    this.initialLatitude,
+    this.initialLongitude,
   });
 
   @override
@@ -35,6 +39,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _uploadedImageUrl;
   bool _saving = false;
 
+  // NEW: Controllers/campi per latitudine/longitudine (modificabili manualmente)
+  late TextEditingController _latController;
+  late TextEditingController _lonController;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +50,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _cityController = TextEditingController(text: widget.initialCity);
     _bioController = TextEditingController(text: widget.initialBio ?? "");
     _uploadedImageUrl = widget.initialProfileImage;
+    _latController = TextEditingController(
+      text: widget.initialLatitude?.toString() ?? '',
+    );
+    _lonController = TextEditingController(
+      text: widget.initialLongitude?.toString() ?? '',
+    );
   }
 
   @override
@@ -49,6 +63,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _usernameController.dispose();
     _cityController.dispose();
     _bioController.dispose();
+    _latController.dispose();
+    _lonController.dispose();
     super.dispose();
   }
 
@@ -64,7 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  /// SALVA PROFILO
+  /// SALVA PROFILO (incl. city/lat/lon aggiornati)
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -80,14 +96,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (!mounted) return;
       }
 
+      // --- Parsing sicuro lat/lon (possono essere null o stringa vuota)
+      final double? latitude = _latController.text.trim().isNotEmpty
+          ? double.tryParse(_latController.text.trim())
+          : null;
+      final double? longitude = _lonController.text.trim().isNotEmpty
+          ? double.tryParse(_lonController.text.trim())
+          : null;
+
       final update = UserProfileUpdate(
         username: _usernameController.text.trim(),
         city: _cityController.text.trim(),
         bio: _bioController.text.trim().isEmpty
             ? null
             : _bioController.text.trim(),
-        // latitude: ...,
-        // longitude: ...,
+        latitude: latitude,
+        longitude: longitude,
       );
 
       await UserService().updateUserProfile(update);
@@ -103,6 +127,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "city": _cityController.text.trim(),
         "bio": _bioController.text.trim(),
         "profileImage": imageUrl,
+        "latitude": latitude,
+        "longitude": longitude,
       });
 
       // Mostra conferma SOLO se ancora montato
@@ -122,12 +148,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  /// --- AUTOFILL CITTÀ tramite GEOLOCALIZZAZIONE ---
-  Future<void> _autofillCity() async {
+  /// --- AUTOFILL CITTÀ E GEOLOCALIZZAZIONE ---
+  Future<void> _autofillCityAndCoords() async {
     try {
       // 1. Ottieni posizione
-      final position = await getCurrentPosition(); // <-- Funzione diretta!
+      final position = await getCurrentPosition();
       if (!mounted) return;
+
       // 2. Reverse geocoding con Nominatim (OpenStreetMap)
       final url = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}',
@@ -152,10 +179,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (city.isNotEmpty) {
           setState(() {
             _cityController.text = city;
+            _latController.text = position.latitude.toStringAsFixed(6);
+            _lonController.text = position.longitude.toStringAsFixed(6);
           });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Città trovata: $city")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Posizione aggiornata: $city")),
+          );
         } else {
           ScaffoldMessenger.of(
             context,
@@ -247,8 +276,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.my_location),
-                          tooltip: 'Rileva città',
-                          onPressed: _autofillCity,
+                          tooltip:
+                              'Rileva posizione attuale (città + coordinate)',
+                          onPressed: _autofillCityAndCoords,
                         ),
                       ],
                     ),
@@ -260,6 +290,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       decoration: const InputDecoration(labelText: 'Bio'),
                       minLines: 2,
                       maxLines: 4,
+                    ),
+                    const SizedBox(height: 16),
+
+                    /// COORDINATE (manuali o autocompilate)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _latController,
+                            decoration: const InputDecoration(
+                              labelText: 'Latitudine',
+                            ),
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lonController,
+                            decoration: const InputDecoration(
+                              labelText: 'Longitudine',
+                            ),
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
 
